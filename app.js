@@ -3,14 +3,20 @@ import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.5/fireba
 import {
   getDatabase,
   ref,
+  get,
   set,
   update,
   onValue,
   onDisconnect,
   runTransaction,
-  increment,
   serverTimestamp
 } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-database.js';
+
+const INITIAL_SCORE = 80;
+const CORRECT_SCORE = 5;
+const WRONG_SCORE = -2;
+const MAX_SCORE = 100;
+const MIN_SCORE = 0;
 
 const QUESTIONS = [
   makeQuestion({
@@ -153,18 +159,33 @@ async function login() {
   playerRef = ref(db, `pythonQuizGame/rooms/${roomId}/players/${playerId}`);
   stateRef = ref(db, `pythonQuizGame/rooms/${roomId}/state`);
 
-  await update(playerRef, {
-    name: playerName,
-    online: true,
-    joinedAt: serverTimestamp(),
-    lastActive: serverTimestamp(),
-    score: 0
-  });
+  try {
+    const existingPlayerSnapshot = await get(playerRef);
+    const existingPlayer = existingPlayerSnapshot.val() || {};
+    const roomStateSnapshot = await get(stateRef);
+    const roomState = roomStateSnapshot.val() || {};
+    const shouldResetScoreOnLogin = roomState.status !== 'playing';
+    const scoreOnLogin = shouldResetScoreOnLogin
+      ? INITIAL_SCORE
+      : clampScore(Number.isFinite(Number(existingPlayer.score)) ? Number(existingPlayer.score) : INITIAL_SCORE);
 
-  onDisconnect(playerRef).update({
-    online: false,
-    leftAt: serverTimestamp()
-  });
+    await update(playerRef, {
+      name: playerName,
+      online: true,
+      joinedAt: existingPlayer.joinedAt || serverTimestamp(),
+      lastActive: serverTimestamp(),
+      score: scoreOnLogin
+    });
+
+    onDisconnect(playerRef).update({
+      online: false,
+      leftAt: serverTimestamp()
+    });
+  } catch (error) {
+    console.error(error);
+    alert('Gagal masuk game. Cek kembali Firebase config, databaseURL, dan Rules.\n\nDetail error: ' + error.message);
+    return;
+  }
 
   hasLoggedIn = true;
   els.loginScreen.classList.add('hidden');
@@ -267,13 +288,21 @@ function renderPlayers() {
     const item = document.createElement('div');
     item.className = `player-item ${state.currentTurnUserId === p.id ? 'turn' : ''}`;
 
+    const score = getPlayerScore(p.id);
+    const isMaxed = score >= MAX_SCORE;
+    const statusText = isMaxed
+      ? 'Poin maksimal'
+      : state.currentTurnUserId === p.id
+        ? 'Sedang menjawab'
+        : 'Online';
+
     const nameBox = document.createElement('div');
     nameBox.className = 'player-name';
-    nameBox.innerHTML = `<strong>${escapeHtml(p.name || 'Tanpa nama')}</strong><span>${state.currentTurnUserId === p.id ? 'Sedang menjawab' : 'Online'}</span>`;
+    nameBox.innerHTML = `<strong>${escapeHtml(p.name || 'Tanpa nama')}</strong><span>${statusText}</span>`;
 
     const scoreBox = document.createElement('div');
-    scoreBox.className = state.currentTurnUserId === p.id ? 'turn-pill' : 'score-pill';
-    scoreBox.textContent = state.currentTurnUserId === p.id ? 'Giliran' : `${p.score || 0} poin`;
+    scoreBox.className = state.currentTurnUserId === p.id ? 'turn-pill' : isMaxed ? 'max-pill' : 'score-pill';
+    scoreBox.textContent = state.currentTurnUserId === p.id ? 'Giliran' : `${score}/${MAX_SCORE} poin`;
 
     item.append(nameBox, scoreBox);
     els.playersList.appendChild(item);
@@ -290,7 +319,7 @@ async function startGame() {
     placedTokenIds: [],
     currentTurnUserId: chosen?.id || playerId,
     currentTurnUserName: chosen?.name || playerName,
-    message: 'Game dimulai. Susun potongan kode sesuai soal.',
+    message: `Game dimulai. Setiap pemain mendapat ${INITIAL_SCORE} poin. Benar +${CORRECT_SCORE}, salah ${WRONG_SCORE} poin, maksimal ${MAX_SCORE} poin.`,
     startedAt: Date.now(),
     lastEvent: null
   });
@@ -335,6 +364,7 @@ async function answerToken(tokenId) {
         byName: playerName,
         tokenId,
         correct: isCorrect,
+        scoreDelta: isCorrect ? CORRECT_SCORE : WRONG_SCORE,
         at: Date.now()
       };
 
@@ -376,7 +406,11 @@ async function answerToken(tokenId) {
 
     const latest = result.snapshot.val();
     if (result.committed && latest?.lastEvent?.eventId === eventId && latest.lastEvent.correct) {
-      await update(playerRef, { score: increment(1), lastActive: serverTimestamp() });
+      await applyScoreDelta(latest.lastEvent.scoreDelta || 0);
+      if (latest.status === 'playing') await ensureValidTurn(latest);
+    } else if (result.committed && latest?.lastEvent?.eventId === eventId) {
+      await applyScoreDelta(latest.lastEvent.scoreDelta || 0);
+      if (latest.status === 'playing') await ensureValidTurn(latest);
     } else {
       await update(playerRef, { lastActive: serverTimestamp() });
     }
@@ -386,27 +420,77 @@ async function answerToken(tokenId) {
   }
 }
 
-async function ensureValidTurn() {
-  if (!stateRef || !stateCache || stateCache.status !== 'playing') return;
-  const turnPlayer = playersCache[stateCache.currentTurnUserId];
-  if (turnPlayer?.online) return;
+async function ensureValidTurn(stateOverride = stateCache) {
+  const state = stateOverride || stateCache;
+  if (!stateRef || !state || state.status !== 'playing') return;
+  const turnPlayer = playersCache[state.currentTurnUserId];
+  if (turnPlayer?.online && getPlayerScore(state.currentTurnUserId) < MAX_SCORE) return;
+
   const chosen = chooseRandomOnline();
-  if (!chosen) return;
+  if (!chosen) {
+    await update(stateRef, {
+      currentTurnUserId: '',
+      currentTurnUserName: '',
+      message: `Semua pemain online sudah mencapai ${MAX_SCORE} poin. Tidak ada pemain yang perlu mendapat giliran lagi. Tambahkan pemain baru atau klik Mulai / Ulang.`
+    });
+    return;
+  }
+
+  const reason = turnPlayer?.online
+    ? `pemain sebelumnya sudah mencapai ${MAX_SCORE} poin`
+    : 'pemain sebelumnya offline';
+
   await update(stateRef, {
     currentTurnUserId: chosen.id,
     currentTurnUserName: chosen.name,
-    message: `Giliran dialihkan otomatis ke ${chosen.name} karena pemain sebelumnya offline.`
+    message: `Giliran dialihkan otomatis ke ${chosen.name} karena ${reason}.`
   });
 }
 
 async function resetScores() {
   const updates = {};
   for (const id of Object.keys(playersCache)) {
-    updates[`pythonQuizGame/rooms/${roomId}/players/${id}/score`] = 0;
+    updates[`pythonQuizGame/rooms/${roomId}/players/${id}/score`] = INITIAL_SCORE;
+    playersCache[id] = { ...playersCache[id], score: INITIAL_SCORE };
   }
   if (Object.keys(updates).length) {
     await update(ref(db), updates);
   }
+}
+
+
+async function applyScoreDelta(delta) {
+  if (!playerRef) return getPlayerScore(playerId);
+  if (!delta) {
+    await update(playerRef, { lastActive: serverTimestamp() });
+    return getPlayerScore(playerId);
+  }
+
+  let newScore = INITIAL_SCORE;
+  await runTransaction(playerRef, (player) => {
+    const currentPlayer = player || {};
+    const currentScore = Number.isFinite(Number(currentPlayer.score)) ? Number(currentPlayer.score) : INITIAL_SCORE;
+    newScore = clampScore(currentScore + delta);
+    return {
+      ...currentPlayer,
+      name: currentPlayer.name || playerName,
+      online: true,
+      score: newScore,
+      lastActive: Date.now()
+    };
+  });
+
+  playersCache[playerId] = { ...(playersCache[playerId] || {}), score: newScore, online: true, name: playerName };
+  return newScore;
+}
+
+function getPlayerScore(id) {
+  const score = Number(playersCache[id]?.score);
+  return clampScore(Number.isFinite(score) ? score : INITIAL_SCORE);
+}
+
+function clampScore(score) {
+  return Math.max(MIN_SCORE, Math.min(MAX_SCORE, Math.round(score)));
 }
 
 function markOffline() {
@@ -447,8 +531,13 @@ function findToken(question, tokenId) {
 
 function chooseRandomOnline(excludeId = '') {
   let players = Object.entries(playersCache)
-    .map(([id, data]) => ({ id, name: data.name || 'Pemain', online: data.online }))
-    .filter((p) => p.online);
+    .map(([id, data]) => ({
+      id,
+      name: data.name || 'Pemain',
+      online: data.online,
+      score: clampScore(Number.isFinite(Number(data.score)) ? Number(data.score) : INITIAL_SCORE)
+    }))
+    .filter((p) => p.online && p.score < MAX_SCORE);
 
   if (excludeId && players.length > 1) {
     players = players.filter((p) => p.id !== excludeId);
