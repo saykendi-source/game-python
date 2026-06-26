@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Python Code Builder Quiz</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="app-shell">
+    <section id="loginScreen" class="login-card">
+      <div class="brand-badge">🐍 Python Quiz Game</div>
+      <h1>Masuk ke Game</h1>
+      <p>Isi nama pemain. Setelah masuk, giliran menjawab akan dipilih otomatis secara acak dari pemain yang sedang online.</p>
+
+      <label for="playerName">Nama pemain</label>
+      <input id="playerName" type="text" maxlength="30" placeholder="Contoh: Kelompok 1 / Aisyah" autocomplete="off" />
+
+      <label for="roomName">Kode room</label>
+      <input id="roomName" type="text" maxlength="40" placeholder="kelas-python" value="kelas-python" autocomplete="off" />
+
+      <button id="loginBtn" class="primary-btn">Masuk Game</button>
+      <p id="configWarning" class="warning hidden"></p>
+    </section>
+
+    <section id="gameScreen" class="game hidden">
+      <header class="top-panel">
+        <div>
+          <span id="roomBadge" class="room-badge">Room</span>
+          <h1 id="questionTitle">Soal</h1>
+          <p id="questionText">...</p>
+        </div>
+        <div class="status-card">
+          <span>Progress</span>
+          <strong id="progressText">0/0</strong>
+        </div>
+      </header>
+
+      <section class="workspace">
+        <div class="code-area-card">
+          <div class="code-toolbar">
+            <div>
+              <span class="small-label">Source code hasil jawaban benar</span>
+              <strong id="turnInfo">Menunggu pemain...</strong>
+            </div>
+            <div class="actions">
+              <button id="startBtn" class="secondary-btn">Mulai / Ulang</button>
+              <button id="shuffleTurnBtn" class="secondary-btn">Acak Giliran</button>
+            </div>
+          </div>
+          <pre id="codeOutput" class="code-output"></pre>
+          <div id="messageBox" class="message-box">Silakan mulai game.</div>
+        </div>
+
+        <aside class="players-card">
+          <h2>Pemain Online</h2>
+          <div id="playersList" class="players-list"></div>
+        </aside>
+      </section>
+
+      <footer class="token-panel">
+        <div class="token-panel-title">
+          <div>
+            <span class="small-label">Potongan kata / karakter</span>
+            <h2>Pilih potongan yang benar</h2>
+          </div>
+          <span id="myStatus" class="my-status">...</span>
+        </div>
+        <div id="tokenBank" class="token-bank"></div>
+      </footer>
+    </section>
+  </main>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

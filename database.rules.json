@@ -1,0 +1,8 @@
+{
+  "rules": {
+    "pythonQuizGame": {
+      ".read": true,
+      ".write": true
+    }
+  }
+}
