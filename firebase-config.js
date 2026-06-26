@@ -6,6 +6,7 @@
 export  const firebaseConfig = {
     apiKey: "AIzaSyCRT8uaj-N4HOxieeXzbUWVgySo2Emtxko",
     authDomain: "python-quiz-game-7c960.firebaseapp.com",
+    databaseURL: "https://quiz-python-umy-default-rtdb.asia-southeast1.firebasedatabase.app",
     projectId: "python-quiz-game-7c960",
     storageBucket: "python-quiz-game-7c960.firebasestorage.app",
     messagingSenderId: "97106116954",
