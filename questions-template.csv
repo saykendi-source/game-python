@@ -1,0 +1,11 @@
+id,title,prompt,code
+q1,Output sederhana,"Susun program Python untuk menampilkan teks: Hello, Python!","print(""Hello, Python!"")"
+q2,Luas persegi panjang,"Susun kode untuk menyimpan panjang dan lebar lalu menghitung luas.","panjang = 10
+lebar = 5
+luas = panjang * lebar
+print(luas)"
+q3,Percabangan if,"Susun kode untuk mengecek apakah nilai lulus atau belum.","nilai = 80
+if nilai >= 75:
+    print(""Lulus"")
+else:
+    print(""Belum lulus"")"

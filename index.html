@@ -19,6 +19,10 @@
       <label for="roomName">Kode room</label>
       <input id="roomName" type="text" maxlength="40" placeholder="kelas-python" value="kelas-python" autocomplete="off" />
 
+      <label for="adminCode">Kode guru/admin <span class="optional-label">opsional</span></label>
+      <input id="adminCode" type="password" maxlength="40" placeholder="Kosongkan jika sebagai pemain" autocomplete="off" />
+      <p class="hint-text">Guru/admin dapat menekan tombol Mulai/Ulang dan Acak Giliran. Pemain biasa hanya menjawab saat mendapat giliran.</p>
+
       <button id="loginBtn" class="primary-btn">Masuk Game</button>
       <p id="configWarning" class="warning hidden"></p>
     </section>
@@ -30,9 +34,15 @@
           <h1 id="questionTitle">Soal</h1>
           <p id="questionText">...</p>
         </div>
-        <div class="status-card">
-          <span>Progress</span>
-          <strong id="progressText">0/0</strong>
+        <div class="status-stack">
+          <div class="status-card">
+            <span>Progress</span>
+            <strong id="progressText">0/0</strong>
+          </div>
+          <div class="status-card timer-card">
+            <span>Timer</span>
+            <strong id="timerText">--</strong>
+          </div>
         </div>
       </header>
 
@@ -42,6 +52,7 @@
             <div>
               <span class="small-label">Source code hasil jawaban benar</span>
               <strong id="turnInfo">Menunggu pemain...</strong>
+              <span id="adminStatus" class="admin-status">Mode pemain</span>
             </div>
             <div class="actions">
               <button id="startBtn" class="secondary-btn">Mulai / Ulang</button>

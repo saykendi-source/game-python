@@ -1,0 +1,44 @@
+{
+  "questions": [
+    {
+      "id": "q1",
+      "title": "Output sederhana",
+      "prompt": "Susun program Python untuk menampilkan teks: Hello, Python!",
+      "parts": [
+        ["print", "print"],
+        ["(", "("],
+        ["\"Hello, Python!\"", "\"Hello, Python!\""],
+        [")", ")"]
+      ]
+    },
+    {
+      "id": "q2",
+      "title": "Variabel dan operasi aritmatika",
+      "prompt": "Susun kode untuk menyimpan nilai panjang dan lebar, lalu menghitung luas persegi panjang.",
+      "parts": [
+        ["panjang", "panjang"], [" ", "spasi"], ["=", "="], [" ", "spasi"], ["10", "10"], ["\n", "↵ Enter"],
+        ["lebar", "lebar"], [" ", "spasi"], ["=", "="], [" ", "spasi"], ["5", "5"], ["\n", "↵ Enter"],
+        ["luas", "luas"], [" ", "spasi"], ["=", "="], [" ", "spasi"], ["panjang", "panjang"], [" ", "spasi"], ["*", "*"], [" ", "spasi"], ["lebar", "lebar"], ["\n", "↵ Enter"],
+        ["print", "print"], ["(", "("], ["luas", "luas"], [")", ")"]
+      ]
+    },
+    {
+      "id": "q3",
+      "title": "Percabangan if",
+      "prompt": "Susun kode untuk mengecek apakah nilai memenuhi syarat lulus atau belum.",
+      "code": "nilai = 80\nif nilai >= 75:\n    print(\"Lulus\")\nelse:\n    print(\"Belum lulus\")"
+    },
+    {
+      "id": "q4",
+      "title": "Perulangan for",
+      "prompt": "Susun kode Python untuk mencetak angka 1 sampai 5 menggunakan for.",
+      "code": "for i in range(1, 6):\n    print(i)"
+    },
+    {
+      "id": "q5",
+      "title": "Fungsi sederhana",
+      "prompt": "Susun kode untuk membuat fungsi salam, lalu memanggil fungsi tersebut.",
+      "code": "def salam(nama):\n    print(\"Halo\", nama)\n\nsalam(\"Mahasiswa TI\")"
+    }
+  ]
+}
